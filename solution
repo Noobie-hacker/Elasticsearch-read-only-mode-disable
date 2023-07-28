@@ -1,0 +1,19 @@
+kibana error log: [cluster_block_exception]: index blocked by: [TOO_MANY_REQUESTS/12/disk usage exceeded flood-stage watermark, index has read-only-allow-delete block];,
+
+This error indicates a data node is critically low on disk space and has reached the flood-stage disk usage watermark. This is the issue of "DISK USAGE EXCEEDED” When you run out of disk space, the indexer might hit the flood-stage disk consumption watermark. To solve this issue there are follwing solutions:  https://www.elastic.co/guide/en/elasticsearch/reference/6.2/disk-allocator.html.The right solution depends on the context - for example a production environment vs a development environment.
+
+Solution 1: free up disk space:
+Freeing up enough disk space so that more than 5% of the disk is free will solve this problem.
+curl -XPUT -k -u <user>:<pass> -H "Content-Type: application/json" -k https://node_ip:9200/_all/_settings -d '{"index.blocks.read_only_allow_delete": null}'
+
+Solution 2: Delete the indexes
+ you can delete the the indexes if it is not in use, using the fowling command:
+curl -k -u <username>:<passward> -XDELETE 'http://localhost:9200/<index name>'
+
+Solution 3:  change the flood stage watermark setting
+Change the "cluster.routing.allocation.disk.watermark.flood_stage" setting to something else. It can either be set to a lower percentage or to an absolute value. Here's an example of how to change the setting from the docs:
+curl -X PUT -k -u <user>:<pass> "https://node_ip:9200/_cluster/settings?pretty" -H 'Content-Type: application/json' -d' { "transient": { "cluster.routing.allocation.disk.watermark.low": "100gb", "cluster.routing.allocation.disk.watermark.high": "50gb", "cluster.routing.allocation.disk.watermark.flood_stage": "10gb", "cluster.info.update.interval": "1m" } } '
+
+
+REFERENCE
+https://groups.google.com/g/wazuh/c/9mazw9zCz0w
